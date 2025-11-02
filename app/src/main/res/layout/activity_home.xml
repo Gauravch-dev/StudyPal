@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F5F5F5">
+
+    <!-- Header Bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="12dp"
+        android:background="#4A3AFF">
+
+        <TextView
+            android:id="@+id/tvUserEmail"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="StudyPal"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/white" />
+
+        <ImageButton
+            android:id="@+id/btnMap"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/map_img"
+            android:background="@android:color/transparent"
+            android:contentDescription="Map"
+            android:layout_marginEnd="8dp"
+            android:scaleType="fitCenter"
+            android:adjustViewBounds="true" />
+
+        <ImageButton
+            android:id="@+id/btnTools"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ml_logo"
+            android:background="@android:color/transparent"
+            android:contentDescription="ML Predictor"
+            android:layout_marginEnd="12dp"
+            android:scaleType="fitCenter"
+            android:adjustViewBounds="true" />
+
+        <Button
+            android:id="@+id/btnLogout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Logout"
+            android:background="#8B0000"
+            android:textColor="@android:color/white" />
+    </LinearLayout>
+
+    <!-- Scrollable main content -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- Create Study Plan -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp"
+                android:background="@android:color/white"
+                android:elevation="4dp"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Create Study Plan"
+                    android:textColor="#4A3AFF"
+                    android:textStyle="bold"
+                    android:textSize="16sp"
+                    android:layout_marginBottom="10dp" />
+
+                <EditText
+                    android:id="@+id/etSubject"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Subject"
+                    android:padding="10dp"
+                    android:textColor="#000000"
+                    android:background="@android:drawable/edit_text" />
+
+                <EditText
+                    android:id="@+id/etTopics"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Topics (comma separated)"
+                    android:padding="10dp"
+                    android:textColor="#000000"
+                    android:background="@android:drawable/edit_text"
+                    android:layout_marginTop="10dp" />
+
+                <EditText
+                    android:id="@+id/etDate"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:hint="Select Date"
+                    android:background="@drawable/et_bg"
+                    android:padding="10dp"
+                    android:textColor="#000000"
+                    android:focusable="false"
+                    android:clickable="true" />
+
+                <Button
+                    android:id="@+id/btnSavePlan"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Save Plan"
+                    android:background="#2D9CFF"
+                    android:textColor="@android:color/white"
+                    android:layout_marginTop="12dp" />
+            </LinearLayout>
+
+            <!-- StudyPal AI Assistant -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginHorizontal="4dp"
+                android:padding="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvAssistantTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="StudyPal AI Assistant"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="#6A1B9A"
+                        android:layout_marginBottom="12dp" />
+
+                    <ScrollView
+                        android:id="@+id/scrollChat"
+                        android:layout_width="match_parent"
+                        android:layout_height="200dp"
+                        android:background="#F1F1F1"
+                        android:padding="8dp">
+
+                        <LinearLayout
+                            android:id="@+id/chatContainer"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical" />
+                    </ScrollView>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginTop="8dp">
+
+                        <EditText
+                            android:id="@+id/etMessage"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:hint="Ask StudyPal AI..."
+                            android:background="@android:drawable/edit_text"
+                            android:padding="8dp"
+                            android:maxLines="4"
+                            android:minLines="1"
+                            android:inputType="textMultiLine" />
+
+                        <Button
+                            android:id="@+id/btnSend"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Ask"
+                            android:backgroundTint="#3B82F6"
+                            android:textColor="@android:color/white" />
+                    </LinearLayout>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Saved Plans List -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Your Saved Plans"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#4A3AFF"
+                android:layout_marginBottom="8dp"
+                android:layout_marginTop="16dp" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerViewPlans"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="#FFFFFF"
+                android:padding="4dp"
+                android:layout_marginBottom="16dp" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>
