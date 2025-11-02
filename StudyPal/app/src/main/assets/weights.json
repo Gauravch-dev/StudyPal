@@ -1,0 +1,28 @@
+{
+  "intercept": -94.03037125465369,
+  "coef": {
+    "mse_percent": 0.7738119667736019,
+    "cia_avg": 4.680764578187034,
+    "progress_percent": 0.24457666641315404,
+    "mse_percent cia_avg": -0.016644326834957753,
+    "mse_percent progress_percent": 0.009146164250235253,
+    "cia_avg progress_percent": -0.012157905571845231
+  },
+  "features_order": [
+    "mse_percent",
+    "cia_avg",
+    "progress_percent",
+    "mse_percent cia_avg",
+    "mse_percent progress_percent",
+    "cia_avg progress_percent"
+  ],
+  "target": "ese_percent",
+  "postprocess": {
+    "type": "soft_ceiling",
+    "params": {
+      "k": 0.08,
+      "mid": 50.0,
+      "max_out": 99.5
+    }
+  }
+}
