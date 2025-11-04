@@ -1,45 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.studypal">
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:allowBackup="true"
         android:label="StudyPal"
         android:supportsRtl="true"
         android:theme="@style/Theme.StudyPal">
-        <activity
-            android:name=".MapsActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ChatBotActivity"
-            android:exported="false" />
+
+        <!-- DO NOT manually add SystemJobService or DeadlineCheckWorker -->
+
+        <activity android:name=".MapsActivity" android:exported="false" />
+        <activity android:name=".ChatBotActivity" android:exported="false" />
+
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyDw2PASM67HTfZ8qT5zmcYhRiWmrY3OY4c" /> <!-- First screen that opens when app starts -->
+            android:value="AIzaSyDw2PASM67HTfZ8qT5zmcYhRiWmrY3OY4c" />
+
         <activity
             android:name=".WelcomeActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity> <!-- Other activities (no intent-filter, so exported not needed) -->
-        <activity
-            android:name=".LoginActivity"
-            android:exported="true" />
-        <activity
-            android:name=".RegisterActivity"
-            android:exported="true" />
-        <activity
-            android:name=".HomeActivity"
-            android:exported="true" />
-        <activity android:name=".MlActivity" />
-    </application>
+        </activity>
 
+        <activity android:name=".LoginActivity" android:exported="true" />
+        <activity android:name=".RegisterActivity" android:exported="true" />
+        <activity android:name=".HomeActivity" android:exported="true" />
+        <activity android:name=".MlActivity" android:exported="false" />
+    </application>
 </manifest>

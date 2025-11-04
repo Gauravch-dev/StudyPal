@@ -13,7 +13,6 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -27,7 +26,6 @@ android {
         }
     }
 
-    // ✅ Sirf Java support ke liye
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -35,17 +33,13 @@ android {
 }
 
 dependencies {
-    // ✅ Google Play Services core (important!)
-    implementation("com.google.android.gms:play-services-base:18.5.0")
-
-    // Maps + Location
+    // Google Play Services
     implementation("com.google.android.gms:play-services-maps:18.1.0")
     implementation("com.google.android.gms:play-services-location:21.0.1")
-
-    // Google Sign-In
     implementation("com.google.android.gms:play-services-auth:21.2.0")
+    implementation("com.google.android.gms:play-services-base:18.5.0")
 
-    // ✅ Firebase (with BoM)
+    // Firebase (BoM manages versions)
     implementation(platform("com.google.firebase:firebase-bom:34.2.0"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
@@ -54,9 +48,17 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.9.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    implementation("androidx.core:core:1.12.0")
+    implementation("androidx.fragment:fragment:1.6.2")
     implementation(libs.activity)
 
-    // HTTP client + JSON
+    // WorkManager (background tasks)
+    implementation("androidx.work:work-runtime:2.9.0")
+
+    // ✅ Full Guava (fixes ListenableFuture issue)
+    implementation("com.google.guava:guava:31.1-android")
+
+    // Network + JSON
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.google.code.gson:gson:2.10.1")
 
