@@ -43,7 +43,7 @@ public class LoginActivity extends AppCompatActivity {
                             if (storedPassword != null && storedPassword.equals(password)) {
                                 Toast.makeText(LoginActivity.this, "Login Successful", Toast.LENGTH_SHORT).show();
                                 Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
-                                intent.putExtra("email", email); // pass user email
+                                intent.putExtra("email", email);
                                 startActivity(intent);
                                 finish();
                             } else {
