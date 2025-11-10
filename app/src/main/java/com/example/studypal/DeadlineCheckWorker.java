@@ -1,136 +1,144 @@
 package com.example.studypal;
 
-import android.Manifest;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.os.Build;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresPermission;
 import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
 import androidx.work.Constraints;
 import androidx.work.Data;
+import androidx.work.NetworkType;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
-import com.google.android.gms.tasks.Tasks;
-import com.google.firebase.FirebaseApp;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.Date;
+import java.util.Locale;
 
 public class DeadlineCheckWorker extends Worker {
 
-    public static final String KEY_USER_EMAIL = "userEmail";
-    private static final String CHANNEL_ID = "deadline_alerts";
+    private static final String TAG = "DeadlineCheckWorker";
+    public static final String KEY_USER_EMAIL = "USER_EMAIL_KEY";
+    private static final String CHANNEL_ID = "DEADLINE_CHANNEL";
 
-    public DeadlineCheckWorker(@NonNull Context context, @NonNull WorkerParameters params) {
-        super(context, params);
-        try {
-            FirebaseApp.initializeApp(context);
-        } catch (Exception ignored) {}
+    public DeadlineCheckWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
+        super(context, workerParams);
     }
 
-    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
+    /**
+     * This is the main background task.
+     * It will run periodically (every 12 hours as you scheduled).
+     */
     @NonNull
     @Override
     public Result doWork() {
+        // Get the user's email from the input data
         String userEmail = getInputData().getString(KEY_USER_EMAIL);
-        if (userEmail == null || userEmail.trim().isEmpty()) {
-            return Result.success();
+        if (userEmail == null || userEmail.isEmpty()) {
+            Log.e(TAG, "User email is missing. Stopping worker.");
+            return Result.failure();
         }
 
+        Log.d(TAG, "Worker running for user: " + userEmail);
+
         try {
+            // This code runs on a background thread.
+            // We can make a *synchronous* call to Firestore.
             FirebaseFirestore db = FirebaseFirestore.getInstance();
-            List<DocumentSnapshot> docs = Tasks.await(
-                    db.collection("studyPlans").whereEqualTo("userEmail", userEmail).get(),
-                    20, TimeUnit.SECONDS
-            ).getDocuments();
 
-            Calendar now = Calendar.getInstance();
-            Calendar due = Calendar.getInstance();
+            // Get "tomorrow's" date to check against
+            Calendar calendar = Calendar.getInstance();
+            calendar.add(Calendar.DAY_OF_YEAR, 1);
+            Date tomorrow = calendar.getTime();
+            SimpleDateFormat sdf = new SimpleDateFormat("d/M/yyyy", Locale.getDefault());
+            String tomorrowDateString = sdf.format(tomorrow);
 
-            for (DocumentSnapshot doc : docs) {
-                String subject = safe(doc.getString("subject"));
-                String dateStr = safe(doc.getString("date"));
-                if (dateStr.isEmpty()) continue;
+            Log.d(TAG, "Checking for deadlines on: " + tomorrowDateString);
 
-                long daysLeft = daysUntil(dateStr, now, due);
-                if (daysLeft >= 0 && daysLeft <= 1) {
-                    String message = "Your study plan for " + subject + " is due in " + daysLeft + " day(s).";
-                    showNotification(getApplicationContext(), message);
-                }
-            }
+            // Query Firestore for pending plans for this user
+            db.collection("studyPlans")
+                    .whereEqualTo("userEmail", userEmail)
+                    .whereEqualTo("status", "pending")
+                    .whereEqualTo("date", tomorrowDateString) // Check for plans due tomorrow
+                    .get()
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful() && task.getResult() != null) {
+                            int count = task.getResult().getDocuments().size();
+                            if (count > 0) {
+                                Log.d(TAG, "Found " + count + " plans due tomorrow.");
+                                // If we found plans, send a notification
+                                String subject = task.getResult().getDocuments().get(0).getString("subject");
+                                String notificationText = (count == 1)
+                                        ? "Your plan for '" + subject + "' is due tomorrow!"
+                                        : "You have " + count + " plans due tomorrow. Don't forget!";
+
+                                sendNotification("StudyPal Deadline", notificationText);
+                            } else {
+                                Log.d(TAG, "No plans due tomorrow.");
+                            }
+                        } else {
+                            Log.e(TAG, "Failed to fetch plans: ", task.getException());
+                        }
+                    });
 
             return Result.success();
+
         } catch (Exception e) {
-            return Result.retry();
+            Log.e(TAG, "Worker failed", e);
+            return Result.failure();
         }
     }
 
-    private static String safe(String s) {
-        return s == null ? "" : s;
-    }
-
-    private static long daysUntil(String ddMMyyyy, Calendar now, Calendar due) {
-        try {
-            String[] parts = ddMMyyyy.split("/");
-            int d = Integer.parseInt(parts[0]);
-            int m = Integer.parseInt(parts[1]) - 1;
-            int y = Integer.parseInt(parts[2]);
-            due.set(y, m, d, 0, 0, 0);
-            due.set(Calendar.MILLISECOND, 0);
-
-            Calendar today = (Calendar) now.clone();
-            today.set(Calendar.HOUR_OF_DAY, 0);
-            today.set(Calendar.MINUTE, 0);
-            today.set(Calendar.SECOND, 0);
-            today.set(Calendar.MILLISECOND, 0);
-
-            long diffMs = due.getTimeInMillis() - today.getTimeInMillis();
-            return diffMs / (1000L * 60 * 60 * 24);
-        } catch (Exception e) {
-            return Long.MAX_VALUE;
-        }
-    }
-
-    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
-    private static void showNotification(Context ctx, String message) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID,
-                    "Study Deadlines",
-                    NotificationManager.IMPORTANCE_HIGH
-            );
-            NotificationManager nm = ctx.getSystemService(NotificationManager.class);
-            if (nm != null) nm.createNotificationChannel(channel);
-        }
-
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(ctx, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_notification)
-                .setContentTitle("Upcoming Study Deadline")
-                .setContentText(message)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setAutoCancel(true);
-
-        NotificationManagerCompat.from(ctx)
-                .notify((int) System.currentTimeMillis(), builder.build());
-    }
-
-    public static Constraints netConnected() {
-        return new Constraints.Builder()
-                .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
-                .build();
-    }
-
+    /**
+     * Helper method to build the input data
+     */
     public static Data inputFor(String userEmail) {
         return new Data.Builder()
                 .putString(KEY_USER_EMAIL, userEmail)
                 .build();
+    }
+
+    /**
+     * Helper method to build the network constraints
+     */
+    public static Constraints netConnected() {
+        return new Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build();
+    }
+
+    /**
+     * Creates and displays a notification.
+     */
+    private void sendNotification(String title, String message) {
+        NotificationManager notificationManager = (NotificationManager)
+                getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
+
+        // Create a notification channel (required for Android 8.0+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                    CHANNEL_ID,
+                    "Study Deadlines",
+                    NotificationManager.IMPORTANCE_DEFAULT);
+            notificationManager.createNotificationChannel(channel);
+        }
+
+        // Build the notification
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_launcher_foreground) // ⚠️ !! REPLACE with your app's icon !!
+                .setContentTitle(title)
+                .setContentText(message)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setAutoCancel(true);
+
+        // Show the notification
+        notificationManager.notify((int) System.currentTimeMillis(), builder.build());
     }
 }

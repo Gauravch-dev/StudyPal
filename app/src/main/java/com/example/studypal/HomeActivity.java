@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.OneTimeWorkRequest;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
@@ -13,7 +14,6 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.Gravity;
-import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.widget.Button;
@@ -21,7 +21,6 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
-import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -33,13 +32,11 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import androidx.work.OneTimeWorkRequest;
-import androidx.work.WorkRequest;
 
 public class HomeActivity extends AppCompatActivity {
 
     EditText etSubject, etTopics, etDate;
-    Button btnSavePlan, btnLogout;
+    Button btnSavePlan, btnLogout, btnChat;
     RecyclerView recyclerViewPlans;
 
     FirebaseFirestore db;
@@ -50,11 +47,6 @@ public class HomeActivity extends AppCompatActivity {
     Button btnAll, btnCompleted, btnPending;
     String currentFilter = "all";
 
-    EditText etMessage;
-    Button btnSend;
-    LinearLayout chatContainer;
-    ScrollView scrollChat;
-
     private final ArrayList<StudyPlan> allPlans = new ArrayList<>();
     private StudyPlanAdapter adapter;
 
@@ -63,38 +55,43 @@ public class HomeActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
+        // 📘 Initialize UI
         etSubject = findViewById(R.id.etSubject);
         etTopics = findViewById(R.id.etTopics);
         etDate = findViewById(R.id.etDate);
         btnSavePlan = findViewById(R.id.btnSavePlan);
         btnLogout = findViewById(R.id.btnLogout);
+        btnChat = findViewById(R.id.btnChat);
         recyclerViewPlans = findViewById(R.id.recyclerViewPlans);
         recyclerViewPlans.setLayoutManager(new LinearLayoutManager(this));
 
-        etMessage = findViewById(R.id.etMessage);
-        btnSend = findViewById(R.id.btnSend);
-        chatContainer = findViewById(R.id.chatContainer);
-        scrollChat = findViewById(R.id.scrollChat);
-
+        // 🗺️ Navigation buttons
         ImageButton btnMap = findViewById(R.id.btnMap);
         btnMap.setOnClickListener(v -> startActivity(new Intent(this, MapsActivity.class)));
 
         ImageButton btnTools = findViewById(R.id.btnTools);
         btnTools.setOnClickListener(v -> startActivity(new Intent(this, MlActivity.class)));
 
+        // 💬 Chat button → opens ChatBotActivity
+        btnChat.setOnClickListener(v -> startActivity(new Intent(this, ChatBotActivity.class)));
+
+        // 📅 Date picker
         etDate.setOnClickListener(v -> {
             Calendar calendar = Calendar.getInstance();
             new DatePickerDialog(
                     this,
-                    (view, year, month, dayOfMonth) -> etDate.setText(dayOfMonth + "/" + (month + 1) + "/" + year),
+                    (view, year, month, dayOfMonth) ->
+                            etDate.setText(dayOfMonth + "/" + (month + 1) + "/" + year),
                     calendar.get(Calendar.YEAR),
                     calendar.get(Calendar.MONTH),
                     calendar.get(Calendar.DAY_OF_MONTH)
             ).show();
         });
 
+        // 🔥 Firestore setup
         db = FirebaseFirestore.getInstance();
         userEmail = getIntent().getStringExtra("email");
+
         if (userEmail == null || userEmail.isEmpty()) {
             Toast.makeText(this, "User email missing — please log in again", Toast.LENGTH_LONG).show();
             startActivity(new Intent(this, LoginActivity.class));
@@ -104,13 +101,16 @@ public class HomeActivity extends AppCompatActivity {
 
         insertProgressAndFilters();
 
+        // 📋 Recycler adapter
         adapter = new StudyPlanAdapter(this, new ArrayList<>(), new StudyPlanAdapter.OnActionListener() {
             @Override
             public void onStatusChanged(String docId, boolean completed) {
                 if (docId == null) return;
                 String newStatus = completed ? "completed" : "pending";
-                db.collection("studyPlans").document(docId).update("status", newStatus)
-                        .addOnFailureListener(e -> Toast.makeText(HomeActivity.this, "Status update failed", Toast.LENGTH_SHORT).show());
+                db.collection("studyPlans").document(docId)
+                        .update("status", newStatus)
+                        .addOnFailureListener(e ->
+                                Toast.makeText(HomeActivity.this, "Status update failed", Toast.LENGTH_SHORT).show());
             }
 
             @Override
@@ -140,7 +140,9 @@ public class HomeActivity extends AppCompatActivity {
                 if (plan == null) return;
                 new AlertDialog.Builder(HomeActivity.this)
                         .setTitle(plan.getSubject())
-                        .setMessage("Topics: " + plan.getTopics() + "\nDate: " + plan.getDate() + "\nStatus: " + plan.getStatus())
+                        .setMessage("Topics: " + plan.getTopics() +
+                                "\nDate: " + plan.getDate() +
+                                "\nStatus: " + plan.getStatus())
                         .setPositiveButton("OK", null)
                         .show();
             }
@@ -148,14 +150,17 @@ public class HomeActivity extends AppCompatActivity {
 
         recyclerViewPlans.setAdapter(adapter);
 
+        // 💾 Save Study Plan
         btnSavePlan.setOnClickListener(v -> saveStudyPlan());
+
+        // 🚪 Logout
         btnLogout.setOnClickListener(v -> {
             Toast.makeText(this, "Logged out successfully", Toast.LENGTH_SHORT).show();
             startActivity(new Intent(this, LoginActivity.class));
             finish();
         });
 
-        // 🔔 Firestore realtime listener
+        // 🔔 Firestore Realtime Sync
         db.collection("studyPlans")
                 .whereEqualTo("userEmail", userEmail)
                 .addSnapshotListener((value, error) -> {
@@ -180,7 +185,7 @@ public class HomeActivity extends AppCompatActivity {
                     updateProgressBar();
                 });
 
-        // 🧠 Schedule AI-style periodic alerts for upcoming deadlines
+        // 🧠 Periodic deadline reminder worker
         PeriodicWorkRequest workRequest = new PeriodicWorkRequest.Builder(
                 DeadlineCheckWorker.class, 12, TimeUnit.HOURS)
                 .setInputData(DeadlineCheckWorker.inputFor(userEmail))
@@ -192,23 +197,13 @@ public class HomeActivity extends AppCompatActivity {
                         "deadline_checker_" + userEmail,
                         ExistingPeriodicWorkPolicy.UPDATE,
                         workRequest);
-        WorkRequest immediateWork = new OneTimeWorkRequest.Builder(DeadlineCheckWorker.class)
-                .setInputData(DeadlineCheckWorker.inputFor(userEmail))
-                .setConstraints(DeadlineCheckWorker.netConnected())
-                .build();
 
-        WorkManager.getInstance(this).enqueue(immediateWork);
-        // 💬 Chat placeholder
-        btnSend.setOnClickListener(v -> {
-            String msg = etMessage.getText().toString().trim();
-            if (msg.isEmpty()) {
-                Toast.makeText(this, "Type something", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            addChatBubble("You", msg, true);
-            etMessage.setText("");
-            addChatBubble("StudyPal AI", "(AI reply placeholder)", false);
-        });
+        WorkManager.getInstance(this).enqueue(
+                new OneTimeWorkRequest.Builder(DeadlineCheckWorker.class)
+                        .setInputData(DeadlineCheckWorker.inputFor(userEmail))
+                        .setConstraints(DeadlineCheckWorker.netConnected())
+                        .build()
+        );
     }
 
     private void saveStudyPlan() {
@@ -311,20 +306,5 @@ public class HomeActivity extends AppCompatActivity {
         int percent = (int) ((completed * 100.0f) / total);
         progressBar.setProgress(percent);
         tvProgressPercent.setText("Progress: " + percent + "%");
-    }
-
-    private void addChatBubble(String who, String message, boolean isUser) {
-        TextView tv = new TextView(this);
-        tv.setText(who + ": " + message);
-        tv.setTextSize(15f);
-        tv.setPadding(16, 12, 16, 12);
-        tv.setBackgroundColor(isUser ? 0xFFDDEAFF : 0xFFEDE7F6);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT);
-        lp.setMargins(0, 8, 0, 8);
-        tv.setLayoutParams(lp);
-        chatContainer.addView(tv);
-        scrollChat.post(() -> scrollChat.fullScroll(ScrollView.FOCUS_DOWN));
     }
 }
